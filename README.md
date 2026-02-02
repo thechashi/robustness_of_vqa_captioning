@@ -9,9 +9,9 @@ This project focuses on evaluating the robustness of Visual Question Answering (
 
 ## 📋 Table of Contents
 - [Setup and Installation](#-setup-and-installation)
-- [Data Preparation](#-data-preparation)
+- [VQA Robustness Evaluation Workflow](#-vqa-robustness-evaluation-workflow)
+- [Captioning Robustness Evaluation Workflow](#-captioning-robustness-evaluation-workflow)
 - [Adversarial Image Generation](#-adversarial-image-generation)
-- [Model Evaluation](#-model-evaluation)
 - [Results](#-results)
 - [Project Structure](#-project-structure)
 - [Contributing](#-contributing)
@@ -47,44 +47,65 @@ This project focuses on evaluating the robustness of Visual Question Answering (
     pip install numpy torch pillow # Ensure these core dependencies are also installed if not covered by LAVIS
     ```
 
-## 🗃 Data Preparation
+## 🔬 VQA Robustness Evaluation Workflow
 
-This section outlines how to set up the necessary datasets for evaluation.
+This workflow outlines the steps to evaluate the robustness of the BLIP-2 model on VQA tasks.
 
-### 1. Download Raw Datasets
-
-*   **COCO Dataset (Images and Captions):**
-    The COCO 2014 validation split images are required. You can download and extract them using the provided script from the LAVIS library:
+### 1. Download VQA and COCO Datasets
+*   **COCO Images:**
+    Download the COCO 2014 validation images using the script from LAVIS. These images are required by the VQA dataset.
     ```bash
     python LAVIS/lavis/datasets/download_scripts/download_coco.py
     ```
-    This script will download `train2014.zip`, `val2014.zip`, and `test2014.zip` (or `test2015.zip`) and extract them. The images for evaluation (e.g., `val2014`) are expected to be located in `datasets/coco/val2014` relative to the project root.
+    Ensure the `val2014` images are in `datasets/coco/val2014`.
 
-*   **VQA v2 Dataset (Questions and Annotations):**
-    The VQA v2 dataset questions and annotations are required.
-    -   Download the VQA v2 validation questions: `v2_OpenEnded_mscoco_val2014_questions.json`
-    -   Download the VQA v2 validation annotations: `v2_mscoco_val2014_annotations.json`
-    You can typically find these on the official VQA website ([https://visualqa.org/](https://visualqa.org/)).
-    Place these JSON files into a directory named `datasets/vqa/` relative to the project root.
-    *(Example path: `robustness_of_vqa_and_captioning_models/datasets/vqa/v2_OpenEnded_mscoco_val2014_questions.json`)*
+*   **VQA v2 Annotations and Questions:**
+    Download the VQA v2 validation questions (`v2_OpenEnded_mscoco_val2014_questions.json`) and annotations (`v2_mscoco_val2014_annotations.json`) from the official VQA website ([https://visualqa.org/](https://visualqa.org/)). Place these files in `datasets/vqa/`.
 
-### 2. Create Dataset Subsets
+### 2. Create VQA Dataset Subset
+Create a balanced subset of the VQA validation dataset.
+```bash
+python src/vqa_dataset_subset_creation.py
+```
+This script creates `vqa_subset_20_per_type.json` (you can configure the number of samples per type in the script).
 
-To facilitate focused evaluation, smaller subsets of the full datasets are used.
+### 3. Prepare Adversarial Images
+Place your pre-generated adversarial images for the VQA task in the `vqa_adversarial_output/` directory. See the [Adversarial Image Generation](#-adversarial-image-generation) section for more details.
 
-*   **For Captioning Evaluation:**
-    This script creates a subset of COCO validation images and their annotations.
-    ```bash
-    python src/caption_dataset_subset_creation.py
-    ```
-    By default, this creates `caption_subset_200_images.json` and copies the selected images into `caption_subset_images/` within the project root. You can modify the `n_samples` variable in the script to change the number of images.
+### 4. Run VQA Evaluation
+Execute the evaluation script to assess the model's performance on the adversarial VQA subset.
+```bash
+python src/blip2_vqa_adversarial_evaluation.py
+```
+This script uses the generated subset and adversarial images, saving the results to `subset_evaluation_results.json`.
 
-*   **For VQA Evaluation:**
-    This script creates a balanced subset of the VQA validation dataset, sampling from the top 10 question types.
-    ```bash
-    python src/vqa_dataset_subset_creation.py
-    ```
-    By default, this creates `vqa_subset_20_per_type.json` in the project root. You can modify the `n_samples` variable in the script to change the number of samples per question type. The images for this subset are referenced from the `datasets/coco/val2014` directory.
+## ✍️ Captioning Robustness Evaluation Workflow
+
+This workflow outlines the steps to evaluate the robustness of the BLIP-2 model on image captioning tasks.
+
+### 1. Download COCO Dataset
+Download the COCO 2014 validation images and captions.
+```bash
+python LAVIS/lavis/datasets/download_scripts/download_coco.py
+```
+Ensure the `val2014` images are in `datasets/coco/val2014` and the `captions_val2014.json` is available in the appropriate annotations directory.
+
+### 2. Create Captioning Dataset Subset
+Create a subset of COCO validation images and their annotations.
+```bash
+python src/caption_dataset_subset_creation.py
+```
+This will create `caption_subset_200_images.json` and a `caption_subset_images/` directory with the sampled images.
+
+### 3. Prepare Adversarial Images
+Place your pre-generated adversarial images for the captioning task in the `caption_adversarial_output/` directory. See the [Adversarial Image Generation](#-adversarial-image-generation) section for more details.
+
+### 4. Run Captioning Evaluation
+Execute the evaluation script to assess the model's captioning performance on original vs. adversarial images.
+```bash
+python src/blip2_caption_adversarial_evaluation.py
+```
+This script uses the generated subset, original images, and adversarial images, saving the results to `caption_evaluation_results.json`.
 
 ## ⚔️ Adversarial Image Generation
 
@@ -95,24 +116,6 @@ This repository primarily focuses on *evaluating* the robustness using pre-gener
     *   `vqa_adversarial_output/`: Contains adversarial images generated for VQA tasks.
 
 The naming convention for adversarial images often follows `original_image_filename@target_image_filename.png`. If you wish to generate your own adversarial images, you would need to implement that process separately. This project provides the framework for their evaluation.
-
-## 📊 Model Evaluation
-
-Once the datasets and adversarial images are prepared, you can run the evaluation scripts. These scripts use the `Salesforce/blip2-opt-2.7b` model and other relevant libraries (e.g., CLIP) which will be automatically downloaded by the `transformers` and `clip` libraries upon first run.
-
-*   **BLIP-2 VQA Adversarial Evaluation:**
-    This script evaluates the BLIP-2 model's performance on VQA tasks using the generated adversarial images.
-    ```bash
-    python src/blip2_vqa_adversarial_evaluation.py
-    ```
-    The script uses `vqa_subset_20_per_type.json` (or whichever subset you generated) and images from `vqa_adversarial_output/` (and potentially `vqa_subset_images/` for original images). It saves detailed results to `subset_evaluation_results.json` in the project root.
-
-*   **BLIP-2 Captioning Adversarial Evaluation:**
-    This script evaluates the BLIP-2 model's captioning ability on original and adversarial images.
-    ```bash
-    python src/blip2_caption_adversarial_evaluation.py
-    ```
-    The script uses `caption_subset_200_images.json` (or whichever subset you generated), original images from `caption_subset_images/`, and adversarial images from `caption_adversarial_output/`. It saves detailed results to `caption_evaluation_results.json` in the project root.
 
 ## 📈 Results
 
@@ -127,18 +130,9 @@ These files include per-sample results, overall accuracy (for VQA), and various 
 ```
 .
 ├── .gitignore
-├── blip2_evaluation_results.json
-├── blip2_vqa_evaluation_results.json
-├── caption_adv_image_gen.log
-├── caption_evaluation_results.json
-├── caption_subset_200_images.json
 ├── README.md
 ├── requirements.txt
 ├── setup.py
-├── vqa_adv_image_gen.log
-├── vqa_adversarial_image_gen.log
-├── vqa_evaluation_results.json
-├── vqa_subset_20_per_type.json
 ├── caption_adversarial_output/  # Pre-generated adversarial images for captioning
 ├── caption_subset_images/       # Subset of COCO images for captioning evaluation
 ├── coco-caption/                # COCO Caption Evaluation Tool
@@ -190,4 +184,4 @@ If you use this code in your research, please cite:
 ## 🙏 Acknowledgments
 -   Acknowledgment 1
 -   Acknowledgment 2
--   Acknowledgment 3# robustness_of_vqa_captioning
+-   Acknowledgment 3

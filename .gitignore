@@ -1,0 +1,58 @@
+# General ignores
+.DS_Store
+.env
+.venv/
+venv/
+env/
+
+# Python ignores
+__pycache__/
+*.pyc
+*.log
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter Notebook ignores
+.ipynb_checkpoints/
+
+# Project-specific generated files and directories
+# Datasets and derived subsets
+/datasets/
+/caption_subset_images/
+/vqa_subset_images/
+
+# Adversarial outputs
+/caption_adversarial_output/
+/vqa_adversarial_output/
+
+# Evaluation results
+blip2_evaluation_results.json
+blip2_vqa_evaluation_results.json
+caption_evaluation_results.json
+vqa_evaluation_results.json
+
+# Subset definition files (can be regenerated)
+caption_subset_200_images.json
+vqa_subset_20_per_type.json
+
+# Log files
+caption_adv_image_gen.log
+vqa_adv_image_gen.log
+vqa_adversarial_image_gen.log
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# LAVIS specific ignores (if not a submodule and contains build artifacts)
+# This assumes LAVIS is a copy and we don't want to commit its internal build/log files.
+# If LAVIS is a git submodule, it should have its own .gitignore.
+LAVIS/saleforce_lavis.egg-info/
+LAVIS/build/
+LAVIS/dist/
+LAVIS/*.pyc
+LAVIS/__pycache__/
